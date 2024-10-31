@@ -10,6 +10,7 @@ import (
 
 const (
 	epoch = "1970-01-01"
+	defaultPriority = "0"
 )
 
 func TestCache(t *testing.T) {
@@ -17,12 +18,12 @@ func TestCache(t *testing.T) {
 
 	for i, typ := range []string{"init", "container"} {
 		version := fmt.Sprintf("0.1.%d", i)
-		m.AddImage("namespace", "pod", "container", typ, "url", true, version, version, epoch)
+		m.AddImage("namespace", "pod", "container", typ, "url", true, version, version, epoch, defaultPriority)
 	}
 
 	for i, typ := range []string{"init", "container"} {
 		version := fmt.Sprintf("0.1.%d", i)
-		mt, _ := m.containerImageVersion.GetMetricWith(m.buildLabels("namespace", "pod", "container", typ, "url", version, version, epoch))
+		mt, _ := m.containerImageVersion.GetMetricWith(m.buildLabels("namespace", "pod", "container", typ, "url", version, version, epoch, defaultPriority))
 		count := testutil.ToFloat64(mt)
 		if count != 1 {
 			t.Error("Should have added metric")
@@ -34,7 +35,7 @@ func TestCache(t *testing.T) {
 	}
 	for i, typ := range []string{"init", "container"} {
 		version := fmt.Sprintf("0.1.%d", i)
-		mt, _ := m.containerImageVersion.GetMetricWith(m.buildLabels("namespace", "pod", "container", typ, "url", version, version, epoch))
+		mt, _ := m.containerImageVersion.GetMetricWith(m.buildLabels("namespace", "pod", "container", typ, "url", version, version, epoch, defaultPriority))
 		count := testutil.ToFloat64(mt)
 		if count != 0 {
 			t.Error("Should have removed metric")

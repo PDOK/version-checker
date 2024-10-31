@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -99,6 +100,7 @@ func (c *Controller) checkContainer(ctx context.Context, log *logrus.Entry, pod 
 		result.ImageURL, result.IsLatest,
 		result.CurrentVersion, result.LatestVersion,
 		result.Timestamp.Format(time.DateOnly),
+		strconv.Itoa(result.Priority),
 	)
 
 	return nil
