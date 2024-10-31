@@ -5,7 +5,8 @@ WORKDIR /app/
 
 RUN go mod download
 
-ARG TARGETOS TARGETARCH
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o ./bin/version-checker ./cmd/.
 
 
