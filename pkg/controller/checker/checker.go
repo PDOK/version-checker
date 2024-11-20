@@ -15,7 +15,8 @@ import (
 )
 
 type Checker struct {
-	search search.Searcher
+	search               search.Searcher
+	imageURLSubstitution *Substitution
 }
 
 type Result struct {
@@ -27,9 +28,10 @@ type Result struct {
 	Priority       int
 }
 
-func New(search search.Searcher) *Checker {
+func New(search search.Searcher, imageURLSubstitution *Substitution) *Checker {
 	return &Checker{
-		search: search,
+		search:               search,
+		imageURLSubstitution: imageURLSubstitution,
 	}
 }
 
@@ -49,6 +51,7 @@ func (c *Checker) Container(ctx context.Context, log *logrus.Entry, pod *corev1.
 		usingTag = false
 	}
 
+	imageURL = c.substituteImageURL(log, imageURL)
 	imageURL = c.overrideImageURL(log, imageURL, opts)
 
 	var result *Result
@@ -68,6 +71,18 @@ func (c *Checker) Container(ctx context.Context, log *logrus.Entry, pod *corev1.
 func (c *Checker) handleLatestOrEmptyTag(log *logrus.Entry, currentTag, currentSHA string, opts *api.Options) {
 	opts.UseSHA = true
 	log.WithField("module", "checker").Debugf("image using %q tag, comparing image SHA %q", currentTag, currentSHA)
+}
+
+func (c *Checker) substituteImageURL(log *logrus.Entry, imageURL string) string {
+
+	if c.imageURLSubstitution == nil {
+		return imageURL
+	}
+	newImageURL := c.imageURLSubstitution.Pattern.ReplaceAllString(imageURL, c.imageURLSubstitution.Substitute)
+	if newImageURL != imageURL {
+		log.Debugf("substituting image URL %s -> %s", imageURL, newImageURL)
+	}
+	return newImageURL
 }
 
 func (c *Checker) overrideImageURL(log *logrus.Entry, imageURL string, opts *api.Options) string {
