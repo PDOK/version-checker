@@ -23,6 +23,7 @@ func TestContainer(t *testing.T) {
 		opts                 *api.Options
 		imageURLSubstitution string
 		searchResp           *api.ImageTag
+		imageResp            *api.ImageTag
 		expResult            *Result
 	}{
 		"no status sha should return nil, nil": {
@@ -32,21 +33,27 @@ func TestContainer(t *testing.T) {
 			searchResp: nil,
 			expResult:  nil,
 		},
-		"use timestamp from image as last-updated": {
+		"set timestamps from images": {
 			statusSHA: "localhost:5000/version-checker@sha:123",
-			imageURL:  "localhost:5000/version-checker:v0.2.0",
+			imageURL:  "localhost:5000/version-checker:v0.1.0",
 			opts:      new(api.Options),
 			searchResp: &api.ImageTag{
 				Tag:       "v0.2.0",
 				SHA:       "sha:456",
-				Timestamp: time.ParseEpochSeconds(12345678),
+				Timestamp: time.ParseEpochSeconds(7654321),
+			},
+			imageResp: &api.ImageTag{
+				Tag:       "v0.1.0",
+				SHA:       "sha:123",
+				Timestamp: time.ParseEpochSeconds(1234567),
 			},
 			expResult: &Result{
-				CurrentVersion: "v0.2.0@sha:123",
-				LatestVersion:  "v0.2.0@sha:456",
-				ImageURL:       "localhost:5000/version-checker",
-				IsLatest:       false,
-				Timestamp:      time.ParseEpochSeconds(12345678),
+				CurrentVersion:   "v0.1.0",
+				LatestVersion:    "v0.2.0",
+				ImageURL:         "localhost:5000/version-checker",
+				IsLatest:         false,
+				LatestTimestamp:  time.ParseEpochSeconds(7654321),
+				CurrentTimestamp: time.ParseEpochSeconds(1234567),
 			},
 		},
 		"if v0.2.0 is latest version, but different sha, then not latest": {
@@ -306,7 +313,10 @@ func TestContainer(t *testing.T) {
 				imageURLSubstitution, err = NewSubstitutionFromSedCommand(test.imageURLSubstitution)
 				require.NoError(t, err)
 			}
-			checker := New(search.New().With(test.searchResp, nil), imageURLSubstitution)
+			checker := New(search.New().
+				WithLatestImage(test.searchResp, nil).
+				WithImage(test.imageResp, nil),
+				imageURLSubstitution)
 			pod := &corev1.Pod{
 				Status: corev1.PodStatus{
 					ContainerStatuses: []corev1.ContainerStatus{
@@ -328,7 +338,7 @@ func TestContainer(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(test.expResult, result) {
-				t.Errorf("got unexpected result, exp=%#+v got=%#+v",
+				t.Errorf("got unexpected result,\nexp=%#+v\ngot=%#+v",
 					test.expResult, result)
 			}
 		})
@@ -518,7 +528,7 @@ func TestIsLatestSemver(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			checker := New(search.New().With(test.searchResp, nil), nil)
+			checker := New(search.New().WithLatestImage(test.searchResp, nil), nil)
 			latestImage, isLatest, err := checker.isLatestSemver(context.TODO(), test.imageURL, test.currentSHA, test.currentImage, nil)
 			if err != nil {
 				t.Fatal(err)
@@ -573,7 +583,7 @@ func TestIsLatestSHA(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			checker := New(search.New().With(test.searchResp, nil), nil)
+			checker := New(search.New().WithLatestImage(test.searchResp, nil), nil)
 			result, err := checker.isLatestSHA(context.TODO(), test.imageURL, test.currentSHA, nil)
 			if err != nil {
 				t.Fatal(err)

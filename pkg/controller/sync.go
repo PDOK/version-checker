@@ -99,7 +99,7 @@ func (c *Controller) checkContainer(ctx context.Context, log *logrus.Entry, pod 
 		container.Name, containerType,
 		result.ImageURL, result.IsLatest,
 		result.CurrentVersion, result.LatestVersion,
-		result.Timestamp.Format(time.DateOnly),
+		result.CurrentTimestamp.Format(time.DateOnly),
 		strconv.Itoa(result.Priority),
 	)
 
